@@ -166,7 +166,7 @@ echo NEXT_PUBLIC_API_URL=http://localhost:8000 > .env.local
 
 ---
 
-## ▶️ Running
+## Running
 
 ### Start Backend
 ```bash
@@ -247,7 +247,7 @@ The RTX 3090 can comfortably run:
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -283,6 +283,6 @@ The RTX 3090 can comfortably run:
 
 ---
 
-## 📝 License
+## License
 
 MIT — use it however you like.
