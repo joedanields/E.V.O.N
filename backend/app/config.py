@@ -28,6 +28,9 @@ class Settings(BaseSettings):
         "https://127.0.0.1:3000",
     ]
 
+    # ── SEC-002: API Authentication ──────────────────────
+    API_KEY: str = ""  # Empty = no auth (local dev). Set in .env for production.
+
     # ── Whisper STT ───────────────────────────────────────
     WHISPER_MODEL_SIZE: str = "base"          # tiny | base | small | medium | large-v3
     WHISPER_DEVICE: str = "cuda"              # cuda | cpu
@@ -43,9 +46,14 @@ class Settings(BaseSettings):
     PIPER_CONFIG_PATH: str = str(BASE_DIR / "models" / "piper" / "en_US-lessac-medium.onnx.json")
     TTS_FALLBACK: str = "pyttsx3"            # pyttsx3 = system TTS fallback
     TTS_SAMPLE_RATE: int = 22050
+    TTS_CACHE_SIZE: int = 100                # PERF-002: max cached TTS entries
 
     # ── Database ──────────────────────────────────────────
     DATABASE_URL: str = f"sqlite+aiosqlite:///{BASE_DIR / 'data' / 'evon.db'}"
+
+    # ── QUALITY-004: Extracted magic numbers ──────────────
+    HISTORY_LIMIT: int = 20                  # Max messages in LLM context
+    TITLE_MAX_LENGTH: int = 100              # Auto-title truncation length
 
     # ── Paths ─────────────────────────────────────────────
     UPLOAD_DIR: str = str(BASE_DIR / "data" / "uploads")
