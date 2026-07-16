@@ -90,6 +90,7 @@ class ChatRequest(BaseModel):
     message: str
     input_mode: Literal["text", "voice"] = "text"
     feedback: Optional[int] = None  # 1=positive, -1=negative, 0=neutral
+    images: list[str] = []  # FEAT-005: base64-encoded images for vision models
 
 
 class ChatResponse(BaseModel):

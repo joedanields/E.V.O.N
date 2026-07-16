@@ -145,16 +145,22 @@ class LLMService:
         user_message: str,
         history: list[dict] | None = None,
         system_prompt: str | None = None,
+        images: list[str] | None = None,
     ) -> list[dict]:
         """
         Build the messages list for Ollama, injecting the system prompt
         and prior conversation history.
+
+        :param images: list of base64-encoded image strings for vision models
         """
         msgs: list[dict] = []
         msgs.append({"role": "system", "content": system_prompt or settings.SYSTEM_PROMPT})
         if history:
             msgs.extend(history)
-        msgs.append({"role": "user", "content": user_message})
+        user_msg: dict = {"role": "user", "content": user_message}
+        if images:
+            user_msg["images"] = images
+        msgs.append(user_msg)
         return msgs
 
 
