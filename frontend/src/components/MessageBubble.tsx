@@ -4,11 +4,13 @@
 
 "use client";
 
-import { Bot, User, Mic, Volume2 } from "lucide-react";
+import { useState } from "react";
+import { Bot, User, Mic, Volume2, ThumbsUp, ThumbsDown } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 import type { Message } from "@/types";
+import { setMessageFeedback } from "@/lib/api";
 
 interface MessageBubbleProps {
   message: Message;
@@ -18,6 +20,20 @@ interface MessageBubbleProps {
 export default function MessageBubble({ message, onSpeak }: MessageBubbleProps) {
   const isUser = message.role === "user";
   const isVoice = message.input_mode === "voice";
+  const [feedback, setFeedback] = useState<"up" | "down" | null>(
+    message.feedback === "up" ? "up" : message.feedback === "down" ? "down" : null
+  );
+
+  const handleFeedback = async (value: "up" | "down") => {
+    const newFeedback = feedback === value ? "none" : value;
+    setFeedback(newFeedback === "none" ? null : newFeedback);
+    try {
+      await setMessageFeedback(message.id, newFeedback);
+    } catch {
+      // revert on error
+      setFeedback(feedback);
+    }
+  };
 
   return (
     <div
@@ -63,16 +79,45 @@ export default function MessageBubble({ message, onSpeak }: MessageBubbleProps) 
               minute: "2-digit",
             })}
           </span>
-          {!isUser && onSpeak && (
-            <button
-              onClick={() => onSpeak(message.content)}
-              className="p-1 rounded-md hover:bg-evon-accent/10 text-evon-muted
-                         hover:text-evon-accent transition-colors"
-              title="Read aloud"
-            >
-              <Volume2 className="w-3.5 h-3.5" />
-            </button>
-          )}
+          <div className="flex items-center gap-1">
+            {/* FEAT-009: Feedback buttons for assistant messages */}
+            {!isUser && (
+              <>
+                <button
+                  onClick={() => handleFeedback("up")}
+                  className={`p-1 rounded-md transition-colors ${
+                    feedback === "up"
+                      ? "text-green-400 bg-green-400/10"
+                      : "text-evon-muted hover:text-green-400 hover:bg-green-400/10"
+                  }`}
+                  title="Good response"
+                >
+                  <ThumbsUp className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => handleFeedback("down")}
+                  className={`p-1 rounded-md transition-colors ${
+                    feedback === "down"
+                      ? "text-red-400 bg-red-400/10"
+                      : "text-evon-muted hover:text-red-400 hover:bg-red-400/10"
+                  }`}
+                  title="Poor response"
+                >
+                  <ThumbsDown className="w-3.5 h-3.5" />
+                </button>
+              </>
+            )}
+            {!isUser && onSpeak && (
+              <button
+                onClick={() => onSpeak(message.content)}
+                className="p-1 rounded-md hover:bg-evon-accent/10 text-evon-muted
+                           hover:text-evon-accent transition-colors"
+                title="Read aloud"
+              >
+                <Volume2 className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
