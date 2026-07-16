@@ -11,6 +11,7 @@ import VoiceButton from "./VoiceButton";
 import Waveform from "./Waveform";
 import { useVoice } from "@/hooks/useVoice";
 import { uploadImageForVision } from "@/lib/api";
+import { useI18n } from "@/i18n/I18nProvider";
 import type { InputMode, Message, VoicePipelineResult } from "@/types";
 
 interface ChatInterfaceProps {
@@ -34,6 +35,7 @@ export default function ChatInterface({
   onSendMessage,
   onAddVoiceMessages,
 }: ChatInterfaceProps) {
+  const { t } = useI18n();
   const [input, setInput] = useState("");
   const [inputMode, setInputMode] = useState<InputMode>("text");
   const [attachedImages, setAttachedImages] = useState<string[]>([]); // base64 strings
@@ -298,10 +300,10 @@ export default function ChatInterface({
               />
               <p className="text-sm text-evon-muted">
                 {isRecording
-                  ? "Listening\u2026 tap to stop"
+                  ? t.chat_listening
                   : isProcessing
-                  ? "Processing your request\u2026"
-                  : "Tap to speak"}
+                  ? t.chat_processing
+                  : t.chat_tap_to_speak}
               </p>
             </div>
           )}
@@ -313,6 +315,7 @@ export default function ChatInterface({
 
 // ── Empty state ────────────────────────────────────────
 function EmptyState() {
+  const { t } = useI18n();
   return (
     <div className="flex-1 flex items-center justify-center h-full">
       <div className="text-center space-y-6 max-w-md animate-fade-in">
@@ -326,19 +329,19 @@ function EmptyState() {
 
         <div>
           <h2 className="text-2xl font-bold text-white mb-2">
-            Hello, I&apos;m E.V.O.N.
+            {t.chat_empty_title}
           </h2>
           <p className="text-evon-muted text-sm leading-relaxed">
-            Your offline AI assistant. I can answer questions, explain code, open applications, and much more — all running locally on your machine.
+            {t.chat_empty_desc}
           </p>
         </div>
 
         <div className="grid grid-cols-2 gap-3 text-left">
           {[
-            { icon: "💬", text: "Ask me anything" },
-            { icon: "🖥️", text: "Open applications" },
+            { icon: "💬", text: t.chat_empty_1 },
+            { icon: "🖥️", text: t.chat_empty_2 },
             { icon: "🧑‍💻", text: t.chat_empty_3 },
-            { icon: "🎤", text: "Talk to me" },
+            { icon: "🎤", text: t.chat_empty_4 },
           ].map((item) => (
             <div
               key={item.text}

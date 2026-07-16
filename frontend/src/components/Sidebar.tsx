@@ -13,6 +13,8 @@ import {
   Cpu,
   Zap,
 } from "lucide-react";
+import ThemeToggle from "./ThemeToggle";
+import { useI18n, localeNames, type Locale } from "@/i18n/I18nProvider";
 import type { ConversationListItem } from "@/types";
 
 interface SidebarProps {
@@ -34,6 +36,7 @@ export default function Sidebar({
   onClearAll,
   onLoadConversations,
 }: SidebarProps) {
+  const { t, locale, setLocale } = useI18n();
   useEffect(() => {
     onLoadConversations();
   }, [onLoadConversations]);
@@ -79,7 +82,7 @@ export default function Sidebar({
                      transition-all duration-200 font-medium text-sm"
         >
           <MessageSquarePlus className="w-4 h-4" />
-          New Conversation
+          {t.chat_new}
         </button>
       </div>
 
@@ -88,7 +91,7 @@ export default function Sidebar({
         {conversations.length === 0 ? (
           <div className="text-center py-8 text-evon-muted text-sm">
             <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-30" />
-            No conversations yet
+            {t.no_results}
           </div>
         ) : (
           conversations.map((conv) => (
@@ -141,14 +144,34 @@ export default function Sidebar({
             className="w-full flex items-center gap-2 py-2 px-3 rounded-lg text-sm
                        text-evon-muted hover:text-red-400 hover:bg-red-500/10
                        transition-all duration-200"
+            aria-label={t.sidebar_clear_all}
           >
             <Trash2 className="w-4 h-4" />
-            Clear all conversations
+            {t.sidebar_clear_all}
           </button>
         )}
-        <div className="flex items-center gap-2 py-2 px-3 text-xs text-evon-muted">
-          <Cpu className="w-3.5 h-3.5" />
-          <span>Running locally</span>
+
+        {/* Language selector */}
+        <select
+          value={locale}
+          onChange={(e) => setLocale(e.target.value as Locale)}
+          className="w-full px-3 py-1.5 text-xs bg-evon-card border border-evon-border rounded-lg
+                     text-evon-text focus:outline-none focus:border-evon-accent transition-colors"
+          aria-label={t.settings_language}
+        >
+          {Object.entries(localeNames).map(([code, name]) => (
+            <option key={code} value={code}>
+              {name}
+            </option>
+          ))}
+        </select>
+
+        <div className="flex items-center justify-between py-2 px-3">
+          <div className="flex items-center gap-2 text-xs text-evon-muted">
+            <Cpu className="w-3.5 h-3.5" />
+            <span>{t.sidebar_running_locally}</span>
+          </div>
+          <ThemeToggle />
         </div>
       </div>
     </aside>
