@@ -131,13 +131,13 @@ export default function Home() {
       </div>
 
       {/* ── Main area ──────────────────────────────────── */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <main id="main-content" className="flex-1 flex flex-col min-w-0" role="main" aria-label="Chat interface">
         {/* Top bar */}
-        <header className="flex items-center justify-between px-4 py-2 border-b border-evon-border bg-evon-surface/50 backdrop-blur-sm">
-          <div className="flex items-center gap-3">
+        <header className="flex items-center justify-between px-3 sm:px-4 py-2 border-b border-evon-border bg-evon-surface/50 backdrop-blur-sm">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-2 rounded-lg hover:bg-evon-card text-evon-muted transition-colors"
+              className="p-2 rounded-lg hover:bg-evon-card text-evon-muted transition-colors flex-shrink-0"
               aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
             >
               {sidebarOpen ? (
@@ -146,14 +146,14 @@ export default function Home() {
                 <Menu className="w-5 h-5" />
               )}
             </button>
-            <div className="text-sm font-medium text-evon-text">
+            <div className="text-sm font-medium text-evon-text truncate">
               {activeConversationId
                 ? conversations.find((c) => c.id === activeConversationId)?.title || "Conversation"
                 : "New Conversation"}
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
             <SearchBar ref={searchRef} onSelectConversation={loadConversation} />
 
 

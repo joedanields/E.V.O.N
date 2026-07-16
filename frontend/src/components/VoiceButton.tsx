@@ -47,13 +47,14 @@ export default function VoiceButton({
     <button
       onClick={onClick}
       className={`${sizeClasses[size]} rounded-full flex items-center justify-center
-                  transition-all duration-300 relative group
+                  transition-all duration-300 relative group touch-manipulation
                   ${
                     isRecording
                       ? "bg-red-500/20 border-2 border-red-500 text-red-400 animate-pulse-glow shadow-[0_0_30px_rgba(239,68,68,0.3)]"
                       : "bg-evon-accent/10 border border-evon-accent/30 text-evon-accent hover:bg-evon-accent/20 hover:border-evon-accent/50 hover:shadow-[0_0_20px_rgba(168,85,247,0.2)]"
                   }`}
       title={isRecording ? "Stop recording" : "Start recording"}
+      aria-label={isRecording ? "Stop recording" : "Start voice input"}
     >
       {/* Pulsing ring when recording */}
       {isRecording && (
