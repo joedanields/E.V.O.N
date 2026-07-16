@@ -11,7 +11,6 @@ import os
 import platform
 import subprocess
 from pathlib import Path
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -75,13 +74,6 @@ SAFE_COMMANDS: dict[str, list[str]] = {
 
 class SystemService:
     """Execute safe system-level operations."""
-
-    _instance = None
-
-    def __new__(cls):
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-        return cls._instance
 
     def __init__(self) -> None:
         pass
