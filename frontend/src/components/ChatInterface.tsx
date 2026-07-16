@@ -5,11 +5,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Send, Bot, Sparkles, Keyboard, Mic } from "lucide-react";
+import { Send, Bot, Sparkles, Keyboard, Mic, ImagePlus, X } from "lucide-react";
 import MessageBubble from "./MessageBubble";
 import VoiceButton from "./VoiceButton";
 import Waveform from "./Waveform";
 import { useVoice } from "@/hooks/useVoice";
+import { uploadImageForVision } from "@/lib/api";
 import type { InputMode, Message, VoicePipelineResult } from "@/types";
 
 interface ChatInterfaceProps {
@@ -17,7 +18,7 @@ interface ChatInterfaceProps {
   streamingContent: string;
   isLoading: boolean;
   activeConversationId: string | null;
-  onSendMessage: (text: string, mode: InputMode) => void;
+  onSendMessage: (text: string, mode: InputMode, images?: string[]) => void;
   onAddVoiceMessages: (
     userMsg: Message,
     assistantMsg: Message,
@@ -35,8 +36,11 @@ export default function ChatInterface({
 }: ChatInterfaceProps) {
   const [input, setInput] = useState("");
   const [inputMode, setInputMode] = useState<InputMode>("text");
+  const [attachedImages, setAttachedImages] = useState<string[]>([]); // base64 strings
+  const [uploadingImage, setUploadingImage] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ── Voice hook ─────────────────────────────────────────
   const {
@@ -58,7 +62,7 @@ export default function ChatInterface({
     onError: (err) => console.error("Voice error:", err),
   });
 
-  // ── Auto-scroll ───────────────────────────────────────
+// ── Auto-scroll ───────────────────────────────────────
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, streamingContent]);
@@ -75,8 +79,26 @@ export default function ChatInterface({
     const text = input.trim();
     if (!text || isLoading) return;
     setInput("");
-    onSendMessage(text, "text");
-  }, [input, isLoading, onSendMessage]);
+    const images = attachedImages.length > 0 ? [...attachedImages] : undefined;
+    setAttachedImages([]);
+    onSendMessage(text, "text", images);
+  }, [input, isLoading, onSendMessage, attachedImages]);
+
+  // ── Image upload handler ──────────────────────────────
+  const handleImageUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingImage(true);
+    try {
+      const result = await uploadImageForVision(file);
+      setAttachedImages((prev) => [...prev, result.image_base64]);
+    } catch (err) {
+      console.error("Image upload failed:", err);
+    } finally {
+      setUploadingImage(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }, []);
 
   // ── Keyboard handler ──────────────────────────────────
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -190,24 +212,66 @@ export default function ChatInterface({
           {/* Input Row */}
           {inputMode === "text" ? (
             <div className="flex items-end gap-3">
+              {/* Image preview */}
+              {attachedImages.length > 0 && (
+                <div className="flex gap-2 mb-2">
+                  {attachedImages.map((_, i) => (
+                    <div key={i} className="relative w-12 h-12 rounded-lg bg-evon-card border border-evon-border overflow-hidden">
+                      <img
+                        src={`data:image/png;base64,${attachedImages[i]}`}
+                        alt={`Attached image ${i + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        onClick={() => setAttachedImages((prev) => prev.filter((_, j) => j !== i))}
+                        className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white flex items-center justify-center"
+                        aria-label={`Remove image ${i + 1}`}
+                      >
+                        <X className="w-2.5 h-2.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <div className="flex-1 relative">
+                {/* Hidden file input */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                  aria-label="Upload image"
+                />
                 <textarea
                   ref={inputRef}
                   value={input}
                   onChange={handleInputChange}
                   onKeyDown={handleKeyDown}
-                  placeholder="Message E.V.O.N. …"
+                  placeholder={attachedImages.length > 0 ? "Ask about this image…" : "Message E.V.O.N. …"}
                   rows={1}
                   disabled={isLoading}
                   className="w-full resize-none rounded-2xl bg-evon-card border border-evon-border
-                             px-4 py-3 pr-12 text-sm text-evon-text placeholder:text-evon-muted
+                             px-4 py-3 pr-20 text-sm text-evon-text placeholder:text-evon-muted
                              focus:outline-none focus:border-evon-accent/50 focus:shadow-[0_0_15px_rgba(168,85,247,0.1)]
                              transition-all duration-200 disabled:opacity-50 max-h-40"
                 />
+                {/* Image upload button inside textarea */}
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingImage || isLoading}
+                  className="absolute right-10 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-evon-muted
+                             hover:text-evon-accent hover:bg-evon-accent/10 transition-colors disabled:opacity-30"
+                  title="Attach image"
+                  aria-label="Attach image for vision"
+                >
+                  <ImagePlus className="w-4 h-4" />
+                </button>
               </div>
               <button
                 onClick={handleSend}
-                disabled={!input.trim() || isLoading}
+                disabled={(!input.trim() && attachedImages.length === 0) || isLoading}
                 className="flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center
                            bg-evon-accent text-white hover:bg-evon-accent-dim
                            disabled:opacity-30 disabled:cursor-not-allowed
@@ -234,9 +298,9 @@ export default function ChatInterface({
               />
               <p className="text-sm text-evon-muted">
                 {isRecording
-                  ? "Listening… tap to stop"
+                  ? "Listening\u2026 tap to stop"
                   : isProcessing
-                  ? "Processing your request…"
+                  ? "Processing your request\u2026"
                   : "Tap to speak"}
               </p>
             </div>
@@ -265,9 +329,7 @@ function EmptyState() {
             Hello, I&apos;m E.V.O.N.
           </h2>
           <p className="text-evon-muted text-sm leading-relaxed">
-            Your offline AI assistant. I can answer questions, explain code,
-            open applications, and much more — all running locally on your
-            machine.
+            Your offline AI assistant. I can answer questions, explain code, open applications, and much more — all running locally on your machine.
           </p>
         </div>
 
@@ -275,7 +337,7 @@ function EmptyState() {
           {[
             { icon: "💬", text: "Ask me anything" },
             { icon: "🖥️", text: "Open applications" },
-            { icon: "🧑‍💻", text: "Explain code" },
+            { icon: "🧑‍💻", text: t.chat_empty_3 },
             { icon: "🎤", text: "Talk to me" },
           ].map((item) => (
             <div
