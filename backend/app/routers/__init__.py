@@ -1,3 +1,7 @@
-from app.routers import chat, voice, system
+"""
+E.V.O.N. Backend — Router Exports (QUALITY-006)
+"""
 
-__all__ = ["chat", "voice", "system"]
+from app.routers import chat, voice, system, personas, files_export_search, tools
+
+__all__ = ["chat", "voice", "system", "personas", "files_export_search", "tools"]
