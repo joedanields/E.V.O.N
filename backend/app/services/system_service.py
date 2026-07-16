@@ -5,6 +5,7 @@ Windows-focused with cross-platform fallbacks.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 import platform
@@ -58,29 +59,32 @@ APP_REGISTRY: dict[str, list[str]] = {
     ],
 }
 
-# Safe system commands the LLM can request
-SAFE_COMMANDS = {
-    "shutdown": "shutdown /s /t 60",
-    "restart": "shutdown /r /t 60",
-    "cancel_shutdown": "shutdown /a",
-    "lock": "rundll32.exe user32.dll,LockWorkStation",
-    "sleep": "rundll32.exe powrprof.dll,SetSuspendState 0,1,0",
-    "screenshot": "snippingtool",
-    "volume_up": "nircmd.exe changesysvolume 5000",
-    "volume_down": "nircmd.exe changesysvolume -5000",
-    "volume_mute": "nircmd.exe mutesysvolume 2",
+# SEC-001: Safe commands stored as argument lists (never shell strings)
+SAFE_COMMANDS: dict[str, list[str]] = {
+    "shutdown": ["shutdown", "/s", "/t", "60"],
+    "restart": ["shutdown", "/r", "/t", "60"],
+    "cancel_shutdown": ["shutdown", "/a"],
+    "lock": ["rundll32.exe", "user32.dll,LockWorkStation"],
+    "sleep": ["rundll32.exe", "powrprof.dll,SetSuspendState", "0", "1", "0"],
+    "screenshot": ["snippingtool"],
+    "volume_up": ["nircmd.exe", "changesysvolume", "5000"],
+    "volume_down": ["nircmd.exe", "changesysvolume", "-5000"],
+    "volume_mute": ["nircmd.exe", "mutesysvolume", "2"],
 }
 
 
 class SystemService:
     """Execute safe system-level operations."""
 
-    _instance: Optional[SystemService] = None
+    _instance = None
 
-    def __new__(cls) -> SystemService:
+    def __new__(cls):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
+
+    def __init__(self) -> None:
+        pass
 
     # ──────────────────────────────────────────────────────
     #  Open Application
@@ -93,13 +97,18 @@ class SystemService:
         key = app_name.strip().lower()
         candidates = APP_REGISTRY.get(key, [])
 
+        if not candidates:
+            logger.warning("Unknown application requested: '%s' (no registry entry)", app_name)
+            return {"success": False, "message": f"Unknown application: '{app_name}'. Use /api/system/apps for available apps."}
+
         # Try each candidate path
         for candidate in candidates:
             exe_path = Path(candidate)
             # If it's a bare command (no backslash), try directly
             if "\\" not in candidate and "/" not in candidate:
                 try:
-                    subprocess.Popen(
+                    await asyncio.to_thread(
+                        subprocess.Popen,
                         [candidate],
                         stdout=subprocess.DEVNULL,
                         stderr=subprocess.DEVNULL,
@@ -108,9 +117,10 @@ class SystemService:
                     return {"success": True, "message": f"Opened {app_name}"}
                 except FileNotFoundError:
                     continue
-            elif exe_path.exists():
+            elif await asyncio.to_thread(exe_path.exists):
                 try:
-                    subprocess.Popen(
+                    await asyncio.to_thread(
+                        subprocess.Popen,
                         [str(exe_path)],
                         stdout=subprocess.DEVNULL,
                         stderr=subprocess.DEVNULL,
@@ -120,36 +130,30 @@ class SystemService:
                 except Exception as exc:
                     logger.error("Failed to open %s: %s", exe_path, exc)
 
-        # Fallback: try os.startfile on Windows
-        if platform.system() == "Windows":
-            try:
-                os.startfile(key)  # type: ignore[attr-defined]
-                return {"success": True, "message": f"Opened {app_name} via startfile"}
-            except OSError:
-                pass
-
+        # SEC-003: os.startfile REMOVED — only known registry apps allowed
         return {"success": False, "message": f"Could not find or open '{app_name}'"}
 
     # ──────────────────────────────────────────────────────
     #  Run Safe Command
     # ──────────────────────────────────────────────────────
     async def run_command(self, command_key: str) -> dict:
-        """Execute a pre-approved safe system command."""
-        cmd = SAFE_COMMANDS.get(command_key.strip().lower())
-        if cmd is None:
+        """Execute a pre-approved safe system command (shell=False, argument list)."""
+        cmd_args = SAFE_COMMANDS.get(command_key.strip().lower())
+        if cmd_args is None:
             return {
                 "success": False,
                 "message": f"Unknown or unsafe command: '{command_key}'",
             }
 
         try:
-            subprocess.Popen(
-                cmd,
-                shell=True,
+            await asyncio.to_thread(
+                subprocess.Popen,
+                cmd_args,
+                shell=False,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
             )
-            logger.info("Executed system command: %s → %s", command_key, cmd)
+            logger.info("Executed system command: %s → %s", command_key, cmd_args)
             return {"success": True, "message": f"Executed: {command_key}"}
         except Exception as exc:
             logger.error("System command failed: %s — %s", command_key, exc)
