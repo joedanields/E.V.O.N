@@ -13,6 +13,26 @@
   --evon-accent-glow: #c084fc;
 }
 
+/* FEAT-008: Light theme overrides */
+.light {
+  --evon-bg: #f8f9fc;
+  --evon-surface: #ffffff;
+  --evon-card: #f1f3f8;
+  --evon-border: #d1d5e0;
+  --evon-accent: #7c3aed;
+  --evon-accent-dim: #6d28d9;
+  --evon-accent-glow: #8b5cf6;
+  --evon-text: #1a1a2e;
+  --evon-muted: #6b7280;
+  --evon-user: #ede9fe;
+  --evon-assistant: #f8f9fc;
+}
+
+.light {
+  background-color: var(--evon-bg);
+  color: var(--evon-text);
+}
+
 /* ── Base ─────────────────────────────────────────────── */
 
 html, body {
@@ -70,6 +90,10 @@ pre {
   @apply text-white;
 }
 
+.light .prose strong {
+  @apply text-gray-900;
+}
+
 .prose blockquote {
   @apply border-l-evon-accent/50 bg-evon-card/50 rounded-r-lg py-1 px-3;
 }
@@ -108,4 +132,29 @@ pre {
 .animate-gradient {
   background-size: 200% 200%;
   animation: gradient-shift 3s ease infinite;
+}
+
+/* ── FEAT-013: Accessibility ──────────────────────────── */
+
+/* Skip to main content link */
+.skip-link {
+  @apply sr-only;
+}
+
+.skip-link:focus {
+  @apply fixed top-4 left-4 z-[100] px-4 py-2 rounded-lg bg-evon-accent text-white font-medium not-sr-only;
+}
+
+/* Focus visible styles for keyboard navigation */
+:focus-visible {
+  @apply outline-2 outline-offset-2 outline-evon-accent;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
