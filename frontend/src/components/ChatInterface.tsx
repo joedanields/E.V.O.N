@@ -64,7 +64,33 @@ export default function ChatInterface({
     onError: (err) => console.error("Voice error:", err),
   });
 
-// ── Auto-scroll ───────────────────────────────────────
+// ── FEAT-011: Push-to-talk (hold Space to record) ─────
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      const isInput = target.tagName === "TEXTAREA" || target.tagName === "INPUT" || target.isContentEditable;
+      if (e.code === "Space" && !isInput && !isLoading && !isRecording && !isProcessing) {
+        e.preventDefault();
+        toggleRecording();
+      }
+    };
+    const handleKeyUp = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      const isInput = target.tagName === "TEXTAREA" || target.tagName === "INPUT" || target.isContentEditable;
+      if (e.code === "Space" && !isInput && isRecording) {
+        e.preventDefault();
+        toggleRecording();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, [isLoading, isRecording, isProcessing, toggleRecording]);
+
+  // ── Auto-scroll ───────────────────────────────────────
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, streamingContent]);
