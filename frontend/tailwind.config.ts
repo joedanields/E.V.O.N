@@ -1,6 +1,7 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
+  darkMode: "class",
   content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -10,17 +11,17 @@ const config: Config = {
     extend: {
       colors: {
         evon: {
-          bg: "#0a0a0f",
-          surface: "#12121a",
-          card: "#1a1a28",
-          border: "#2a2a3e",
-          accent: "#a855f7",          // Light purple
-          "accent-dim": "#7c3aed",
-          "accent-glow": "#c084fc",
-          text: "#e2e8f0",
-          muted: "#94a3b8",
-          user: "#1e1b4b",
-          assistant: "#171723",
+          bg: "var(--evon-bg)",
+          surface: "var(--evon-surface)",
+          card: "var(--evon-card)",
+          border: "var(--evon-border)",
+          accent: "var(--evon-accent)",
+          "accent-dim": "var(--evon-accent-dim)",
+          "accent-glow": "var(--evon-accent-glow)",
+          text: "var(--evon-text)",
+          muted: "var(--evon-muted)",
+          user: "var(--evon-user)",
+          assistant: "var(--evon-assistant)",
         },
       },
       fontFamily: {
