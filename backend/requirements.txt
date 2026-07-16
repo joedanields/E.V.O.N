@@ -30,6 +30,9 @@ pyttsx3==2.98
 # -- System Monitoring -------------------------------------
 psutil==6.1.*
 
+# -- Security (SEC-002 optional auth) ----------------------
+# No extra deps needed — uses FastAPI built-in security
+
 # -- CUDA / GPU (install separately via pip + CUDA toolkit)
 # ctranslate2          (comes with faster-whisper)
 # torch                (only if needed for other models)
