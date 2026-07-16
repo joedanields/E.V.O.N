@@ -4,7 +4,7 @@
 
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { voicePipeline, textToSpeech } from "@/lib/api";
 import type { Message, VoicePipelineResult } from "@/types";
 
@@ -29,6 +29,17 @@ export function useVoice({
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+
+  // BUG-005 FIX: Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (mediaRecorderRef.current?.state === "recording") {
+        mediaRecorderRef.current.stop();
+      }
+      sourceRef.current?.disconnect();
+      audioContextRef.current?.close().catch(() => {});
+    };
+  }, []);
 
   // ── Start recording ───────────────────────────────────
   const startRecording = useCallback(async () => {
