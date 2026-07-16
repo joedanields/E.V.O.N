@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import I18nProvider from "@/i18n/I18nProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -24,7 +25,9 @@ export default function RootLayout({
           Skip to main content
         </a>
         <ErrorBoundary>
-          {children}
+          <I18nProvider>
+            {children}
+          </I18nProvider>
         </ErrorBoundary>
       </body>
     </html>
