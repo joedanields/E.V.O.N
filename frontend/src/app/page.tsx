@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Sidebar from "@/components/Sidebar";
 import ChatInterface from "@/components/ChatInterface";
+import SearchBar, { type SearchBarHandle } from "@/components/SearchBar";
 import { useChat } from "@/hooks/useChat";
 import { healthCheck } from "@/lib/api";
 import { Menu, X, Wifi, WifiOff, AlertCircle } from "lucide-react";
@@ -35,6 +36,7 @@ export default function Home() {
     cancelStreaming,
   } = useChat({ onError });
 
+  const searchRef = useRef<SearchBarHandle>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [backendStatus, setBackendStatus] = useState<"checking" | "online" | "offline">("checking");
 
@@ -62,6 +64,11 @@ export default function Home() {
   // ── Keyboard shortcuts ────────────────────────────────
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
+      // Ctrl+K — Focus search bar
+      if (e.ctrlKey && e.key === "k") {
+        e.preventDefault();
+        searchRef.current?.focus();
+      }
       // Ctrl+N — New conversation
       if (e.ctrlKey && e.key === "n") {
         e.preventDefault();
@@ -75,7 +82,7 @@ export default function Home() {
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [newConversation, cancelStreaming, isLoading]);
+  }, [newConversation, cancelStreaming, isLoading, searchRef]);
 
   return (
     <div className="flex h-screen w-screen overflow-hidden">
@@ -147,6 +154,7 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-2">
+            <SearchBar ref={searchRef} onSelectConversation={loadConversation} />
 
 
             {/* Cancel button — visible during streaming */}
