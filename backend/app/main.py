@@ -15,8 +15,10 @@ from fastapi.staticfiles import StaticFiles
 from app.config import settings
 from app.database import engine
 from app.models import Base
+from app.rate_limit import RateLimitMiddleware
 from app.routers import chat, system, voice
 from app.services.llm_service import llm_service
+from app.services.persona_service import persona_manager
 from app.services.stt_service import stt_service
 from app.services.tts_service import tts_service
 
@@ -50,6 +52,7 @@ async def lifespan(app: FastAPI):
 
     await llm_service.initialize()
     await tts_service.initialize()
+    await persona_manager.initialize()  # FEAT-007: Load personas
 
     # Check Ollama health
     if await llm_service.health_check():
@@ -77,14 +80,17 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS
+# SEC-004: Restricted CORS — only needed methods and headers
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "DELETE"],
+    allow_headers=["Content-Type", "Authorization"],
 )
+
+# SEC-005: Rate limiting middleware
+app.add_middleware(RateLimitMiddleware)
 
 # Static files for TTS output
 app.mount("/static/tts", StaticFiles(directory=settings.TTS_OUTPUT_DIR), name="tts")
@@ -108,10 +114,28 @@ async def root():
 
 @app.get("/api/health")
 async def health():
-    """Health check endpoint."""
+    """Public health check — returns minimal info for external consumers."""
     ollama_ok = await llm_service.health_check()
     return {
-        "status": "healthy",
-        "ollama": "connected" if ollama_ok else "disconnected",
+        "status": "healthy" if ollama_ok else "degraded",
+        "services": {
+            "llm": "connected" if ollama_ok else "disconnected",
+        },
+    }
+
+
+@app.get("/api/health/detail")
+async def health_detail():
+    """Internal detailed health check — for admin/monitoring use."""
+    ollama_ok = await llm_service.health_check()
+    models = await llm_service.list_models() if ollama_ok else []
+    return {
+        "status": "healthy" if ollama_ok else "degraded",
+        "ollama": {
+            "status": "connected" if ollama_ok else "disconnected",
+            "url": settings.OLLAMA_BASE_URL,
+            "available_models": models,
+        },
         "stt": "loaded" if stt_service._model is not None else "not loaded",
+        "tts": "available" if tts_service._piper_available else "pyttsx3 fallback",
     }
