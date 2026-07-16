@@ -8,6 +8,7 @@ export interface Message {
   role: "user" | "assistant" | "system";
   content: string;
   input_mode: "text" | "voice";
+  feedback?: "up" | "down" | null;  // FEAT-009
   created_at: string;
 }
 
