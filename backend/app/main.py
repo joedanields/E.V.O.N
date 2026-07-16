@@ -17,6 +17,10 @@ from app.database import engine
 from app.models import Base
 from app.rate_limit import RateLimitMiddleware
 from app.routers import chat, system, voice
+from app.routers.personas import router as personas_router
+from app.routers.files_export_search import router as files_router
+from app.routers.tools import router as tools_router
+from app.routers.voice_ws import router as voice_ws_router
 from app.services.llm_service import llm_service
 from app.services.persona_service import persona_manager
 from app.services.stt_service import stt_service
@@ -99,6 +103,10 @@ app.mount("/static/tts", StaticFiles(directory=settings.TTS_OUTPUT_DIR), name="t
 app.include_router(chat.router)
 app.include_router(voice.router)
 app.include_router(system.router)
+app.include_router(personas_router)   # FEAT-007: Personas API
+app.include_router(files_router)      # MISS-001/002/003: Files, Export, Search
+app.include_router(tools_router)      # FEAT-004: Tool System
+app.include_router(voice_ws_router)   # FEAT-006: Real-time voice WebSocket
 
 
 # ── Root ─────────────────────────────────────────────────
