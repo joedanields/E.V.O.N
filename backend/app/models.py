@@ -40,6 +40,7 @@ class Message(Base):
     role = Column(String(20), nullable=False)          # user | assistant | system
     content = Column(Text, nullable=False)
     input_mode = Column(String(10), default="text")    # text | voice
+    feedback = Column(String(10), default=None)        # FEAT-009: up | down | None
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     conversation = relationship("Conversation", back_populates="messages")
@@ -55,6 +56,7 @@ class MessageSchema(BaseModel):
     role: str
     content: str
     input_mode: str = "text"
+    feedback: Optional[str] = None  # FEAT-009
     created_at: datetime
 
     class Config:
@@ -106,6 +108,10 @@ class TTSRequest(BaseModel):
     voice: str = "default"
 
 
+class FeedbackRequest(BaseModel):
+    feedback: Literal["up", "down", "none"]
+
+
 class SystemCommandRequest(BaseModel):
     command: str = Field(..., description="Natural-language system command")
 
@@ -122,3 +128,12 @@ class HealthResponse(BaseModel):
     ollama: bool
     tts: bool
     gpu_available: bool
+
+
+class ModelListResponse(BaseModel):
+    models: list[str]
+    current: str
+
+
+class ModelSwitchRequest(BaseModel):
+    model: str
