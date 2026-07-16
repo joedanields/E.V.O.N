@@ -7,6 +7,8 @@ Fallback: pyttsx3 (system voices, zero setup).
 
 from __future__ import annotations
 
+import asyncio
+import hashlib
 import io
 import logging
 import struct
@@ -14,7 +16,6 @@ import subprocess
 import tempfile
 import wave
 from pathlib import Path
-from typing import Optional
 
 from app.config import settings
 
@@ -24,14 +25,11 @@ logger = logging.getLogger(__name__)
 class TTSService:
     """Generates speech audio from text, fully offline."""
 
-    _instance: Optional[TTSService] = None
-    _piper_available: bool = False
-    _pyttsx3_engine: object | None = None
-
-    def __new__(cls) -> TTSService:
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-        return cls._instance
+    def __init__(self) -> None:
+        self._piper_available: bool = False
+        self._pyttsx3_engine: object | None = None
+        self._cache: dict[str, bytes] = {}
+        self._cache_max: int = 100
 
     # ──────────────────────────────────────────────────────
     #  Lifecycle
@@ -77,46 +75,63 @@ class TTSService:
         """
         Convert text → WAV bytes.
         Returns raw WAV audio suitable for streaming to the client.
+        Uses MD5-keyed cache to avoid re-synthesizing identical text.
         """
         if not text.strip():
             return b""
 
+        # PERF-002: Check cache first
+        cache_key = hashlib.md5(text.encode("utf-8")).hexdigest()
+        if cache_key in self._cache:
+            logger.debug("TTS cache hit for text (len=%d)", len(text))
+            return self._cache[cache_key]
+
         if self._piper_available:
-            return await self._synthesize_piper(text)
+            wav = await self._synthesize_piper(text)
         elif self._pyttsx3_engine is not None:
-            return await self._synthesize_pyttsx3(text)
+            wav = await self._synthesize_pyttsx3(text)
         else:
             raise RuntimeError("No TTS engine available.")
 
+        # PERF-002: Store in cache (evict oldest if full)
+        if wav and len(self._cache) >= self._cache_max:
+            self._cache.pop(next(iter(self._cache)))
+        if wav:
+            self._cache[cache_key] = wav
+
+        return wav
+
     async def _synthesize_piper(self, text: str) -> bytes:
-        """Run Piper TTS as a subprocess, return WAV bytes."""
+        """Run Piper TTS as an async subprocess, return WAV bytes."""
         try:
-            proc = subprocess.run(
-                [
-                    "piper",
-                    "--model", settings.PIPER_MODEL_PATH,
-                    "--config", settings.PIPER_CONFIG_PATH,
-                    "--output-raw",
-                ],
-                input=text.encode("utf-8"),
-                capture_output=True,
+            proc = await asyncio.create_subprocess_exec(
+                "piper",
+                "--model", settings.PIPER_MODEL_PATH,
+                "--config", settings.PIPER_CONFIG_PATH,
+                "--output-raw",
+                stdin=asyncio.subprocess.PIPE,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            stdout, stderr = await asyncio.wait_for(
+                proc.communicate(input=text.encode("utf-8")),
                 timeout=60,
             )
             if proc.returncode != 0:
-                logger.error("Piper error: %s", proc.stderr.decode())
+                logger.error("Piper error: %s", stderr.decode())
                 return await self._synthesize_pyttsx3(text)
 
-            raw_pcm = proc.stdout
+            raw_pcm = stdout
             return self._pcm_to_wav(raw_pcm, sample_rate=settings.TTS_SAMPLE_RATE, channels=1, sample_width=2)
 
-        except subprocess.TimeoutExpired:
+        except asyncio.TimeoutError:
             logger.error("Piper TTS timed out.")
             return await self._synthesize_pyttsx3(text)
 
     async def _synthesize_pyttsx3(self, text: str) -> bytes:
-        """Use pyttsx3 to generate WAV into a temp file and return bytes."""
+        """Use pyttsx3 to generate WAV via asyncio.to_thread (non-blocking)."""
         if self._pyttsx3_engine is None:
-            self._init_pyttsx3()
+            await asyncio.to_thread(self._init_pyttsx3)
         if self._pyttsx3_engine is None:
             raise RuntimeError("pyttsx3 engine not available.")
 
@@ -124,8 +139,12 @@ class TTSService:
             tmp_path = tmp.name
 
         try:
-            self._pyttsx3_engine.save_to_file(text, tmp_path)  # type: ignore[union-attr]
-            self._pyttsx3_engine.runAndWait()  # type: ignore[union-attr]
+            await asyncio.to_thread(
+                self._pyttsx3_engine.save_to_file, text, tmp_path  # type: ignore[union-attr]
+            )
+            await asyncio.to_thread(
+                self._pyttsx3_engine.runAndWait  # type: ignore[union-attr]
+            )
             return Path(tmp_path).read_bytes()
         finally:
             Path(tmp_path).unlink(missing_ok=True)

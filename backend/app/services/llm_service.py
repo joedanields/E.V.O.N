@@ -5,8 +5,9 @@ Supports streaming and non-streaming chat completions.
 
 from __future__ import annotations
 
+import json
 import logging
-from typing import AsyncGenerator, Optional
+from typing import AsyncGenerator
 
 import httpx
 
@@ -18,13 +19,17 @@ logger = logging.getLogger(__name__)
 class LLMService:
     """Communicates with a locally-running Ollama instance."""
 
-    _instance: Optional[LLMService] = None
-    _client: Optional[httpx.AsyncClient] = None
+    def __init__(self) -> None:
+        self._client: httpx.AsyncClient | None = None
+        self._current_model: str = settings.OLLAMA_MODEL
 
-    def __new__(cls) -> LLMService:
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-        return cls._instance
+    @property
+    def current_model(self) -> str:
+        return self._current_model
+
+    def set_model(self, model: str) -> None:
+        self._current_model = model
+        logger.info("Ollama model switched to: %s", model)
 
     # ──────────────────────────────────────────────────────
     #  Lifecycle
@@ -89,7 +94,7 @@ class LLMService:
         :param temperature: sampling temperature
         """
         payload = {
-            "model": model or settings.OLLAMA_MODEL,
+            "model": model or self._current_model,
             "messages": messages,
             "stream": False,
             "options": {"temperature": temperature},
@@ -112,7 +117,7 @@ class LLMService:
         Yield response tokens as they are generated.
         """
         payload = {
-            "model": model or settings.OLLAMA_MODEL,
+            "model": model or self._current_model,
             "messages": messages,
             "stream": True,
             "options": {"temperature": temperature},
@@ -122,7 +127,6 @@ class LLMService:
             async for line in resp.aiter_lines():
                 if not line:
                     continue
-                import json
                 try:
                     chunk = json.loads(line)
                 except json.JSONDecodeError:

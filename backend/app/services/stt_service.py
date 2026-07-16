@@ -10,8 +10,6 @@ import logging
 import os
 import tempfile
 from pathlib import Path
-from typing import Optional
-
 import numpy as np
 from faster_whisper import WhisperModel
 
@@ -23,13 +21,8 @@ logger = logging.getLogger(__name__)
 class STTService:
     """Singleton wrapper around faster-whisper for local speech recognition."""
 
-    _instance: Optional[STTService] = None
-    _model: Optional[WhisperModel] = None
-
-    def __new__(cls) -> STTService:
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-        return cls._instance
+    def __init__(self) -> None:
+        self._model: WhisperModel | None = None
 
     # ──────────────────────────────────────────────────────
     #  Lifecycle
@@ -73,12 +66,10 @@ class STTService:
             # Lazy load: try to load the model on first use
             import asyncio
             try:
-                loop = asyncio.get_event_loop()
+                loop = asyncio.get_running_loop()
                 if loop.is_running():
                     # We're inside an async context — load synchronously
                     self._load_model_sync()
-                else:
-                    loop.run_until_complete(self.load_model())
             except RuntimeError:
                 self._load_model_sync()
         if self._model is None:
