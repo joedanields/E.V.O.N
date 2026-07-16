@@ -32,6 +32,7 @@ export interface ChatRequest {
   conversation_id?: string | null;
   message: string;
   input_mode: "text" | "voice";
+  images?: string[];  // FEAT-005: base64-encoded images for vision models
 }
 
 export interface ChatResponse {

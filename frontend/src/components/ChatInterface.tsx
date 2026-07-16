@@ -64,9 +64,10 @@ export default function ChatInterface({
     onError: (err) => console.error("Voice error:", err),
   });
 
-// ── FEAT-011: Push-to-talk (hold Space to record) ─────
+  // ── FEAT-011: Push-to-talk (hold Space to record) ─────
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Only trigger when not typing in an input
       const target = e.target as HTMLElement;
       const isInput = target.tagName === "TEXTAREA" || target.tagName === "INPUT" || target.isContentEditable;
       if (e.code === "Space" && !isInput && !isLoading && !isRecording && !isProcessing) {

@@ -8,6 +8,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Sidebar from "@/components/Sidebar";
 import ChatInterface from "@/components/ChatInterface";
 import SearchBar, { type SearchBarHandle } from "@/components/SearchBar";
+import PersonaSelector from "@/components/PersonaSelector";
 import { useChat } from "@/hooks/useChat";
 import { healthCheck } from "@/lib/api";
 import { Menu, X, Wifi, WifiOff, AlertCircle } from "lucide-react";
@@ -36,9 +37,10 @@ export default function Home() {
     cancelStreaming,
   } = useChat({ onError });
 
-  const searchRef = useRef<SearchBarHandle>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [backendStatus, setBackendStatus] = useState<"checking" | "online" | "offline">("checking");
+  const [activePersonaId, setActivePersonaId] = useState<string | null>(null);
+  const searchRef = useRef<SearchBarHandle>(null);
 
   // ── Check backend health with exponential backoff ─────
   useEffect(() => {
@@ -64,15 +66,15 @@ export default function Home() {
   // ── Keyboard shortcuts ────────────────────────────────
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      // Ctrl+K — Focus search bar
-      if (e.ctrlKey && e.key === "k") {
-        e.preventDefault();
-        searchRef.current?.focus();
-      }
       // Ctrl+N — New conversation
       if (e.ctrlKey && e.key === "n") {
         e.preventDefault();
         newConversation();
+      }
+      // Ctrl+K — Focus search bar
+      if (e.ctrlKey && e.key === "k") {
+        e.preventDefault();
+        searchRef.current?.focus();
       }
       // Ctrl+Shift+V — Toggle voice mode (handled by VoiceButton internally)
       // Escape — Cancel streaming
@@ -82,7 +84,7 @@ export default function Home() {
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [newConversation, cancelStreaming, isLoading, searchRef]);
+  }, [newConversation, cancelStreaming, isLoading]);
 
   return (
     <div className="flex h-screen w-screen overflow-hidden">
@@ -154,8 +156,15 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-            <SearchBar ref={searchRef} onSelectConversation={loadConversation} />
+            {/* Search bar — hidden on very small screens */}
+            <div className="hidden sm:block">
+              <SearchBar ref={searchRef} onSelectConversation={loadConversation} />
+            </div>
 
+            {/* Persona selector */}
+            <div className="hidden md:block">
+              <PersonaSelector activePersonaId={activePersonaId} onSelect={setActivePersonaId} />
+            </div>
 
             {/* Cancel button — visible during streaming */}
             {isLoading && (
@@ -202,7 +211,7 @@ export default function Home() {
           onSendMessage={sendMessage}
           onAddVoiceMessages={addVoiceMessages}
         />
-      </div>
+      </main>
     </div>
   );
 }

@@ -89,7 +89,6 @@ class ChatRequest(BaseModel):
     conversation_id: Optional[str] = None
     message: str
     input_mode: Literal["text", "voice"] = "text"
-    feedback: Optional[int] = None  # 1=positive, -1=negative, 0=neutral
     images: list[str] = []  # FEAT-005: base64-encoded images for vision models
 
 
@@ -135,14 +134,6 @@ class HealthResponse(BaseModel):
 class ModelListResponse(BaseModel):
     models: list[str]
     current: str
-
-
-class ModelSwitchRequest(BaseModel):
-    model: str
-
-
-class ModelListResponse(BaseModel):
-    models: list[str]
 
 
 class ModelSwitchRequest(BaseModel):
