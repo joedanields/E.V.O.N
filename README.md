@@ -7,7 +7,6 @@ User Voice → Whisper (STT) → Ollama LLM → Piper TTS → Audio Output
 ```
 
 ---
-
 ##  Features
 
 | Feature | Description |
