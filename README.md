@@ -5,7 +5,6 @@ A fully local, offline desktop AI assistant. Powered by open-source LLMs, Whispe
 ```
 User Voice → Whisper (STT) → Ollama LLM → Piper TTS → Audio Output
 ```
-
 ---
 ##  Features
 
